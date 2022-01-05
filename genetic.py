@@ -1,4 +1,4 @@
-import random as rn
+import random
 
 class Partition:
     def __init__ (self, num):
@@ -27,14 +27,14 @@ class Partition:
                 result.pop(j)
             else:
                 j += 1
-        return result
+        return len(result)
     
 
 class Chromosome:
     def __init__ (self, length):
         self.genes = [0 for i in range(length+1)]
     
-    def Q (self, adj_matrix, length):
+    def Q (self, adj_matrix, length, YesorNo):
         m = 0
         k = [0 for i in range(length+1)]
         for i in range(length+1):
@@ -46,7 +46,6 @@ class Chromosome:
         p = Partition(length)
         for i in range(length+1):
             p.union(i, self.genes[i])
-        print(p.report())
 
         result = 0
         for i in range(1, length+1):
@@ -54,6 +53,10 @@ class Chromosome:
                 if p.find(i) == p.find(j):
                     result += adj_matrix[i][j] - (k[i] * k[j] / (2 * m))
         result /= (2 * m)
+
+        if (YesorNo == 'Yes'):
+            print(p.report())
+
         if result < 0:
             return 0
         elif result > 1:
@@ -61,23 +64,86 @@ class Chromosome:
         return result
 
 
+def find_neighber (node_num, adj_matrix, length):
+    neighbors = []
+    for i in range(length+1):
+        if adj_matrix[nodes_num][i] == 1:
+            neighbors.append(i)
+    return neighbors
 
 def random_chro (adj_matrix, length):
     new_chro = Chromosome(length)
-
     for i in range(1, length+1):
-        neighbors = []
-        for j in range(length+1):
-            if adj_matrix[i][j] == 1:
-                neighbors.append(j)
-        new_chro.genes[i] = neighbors[rn.randint(0, len(neighbors)-1)]
-    
+        neighbors = find_neighber(i, adj_matrix, length)
+        new_chro.genes[i] = neighbors[random.randint(0, len(neighbors)-1)]
     return new_chro
 
-def genetic (adj_matrix, popu, iter_num, length):
+def choose_parent (chro_list, popu, length):
+    Q_list = []
+    maximum = 0
+    summation = 0
+    for i in range(popu):
+        Q_list.append(chro_list[i].Q(adj_matrix, length, 'No'))
+        summation += Q_list[i]
+        if Q_list[i] > Q_list[maximum]:
+            maximum = i
+    
+    possibility = []
+    for i in range(popu):
+        possibility.append(Q_list[i] / summation)
+
+    choosed_parents = []
+    for i in range((2 * popu) - 2):
+        random_float = random.uniform(0, 1)
+        for j in range(popu):
+            random_float -= possibility[j]
+            if random_float <= 0:
+                choosed_parents.append(j)
+                break
+    
+    return Q_list[maximum], maximum, choosed_parents
+
+def crossover (chro1, chro2, length):
+    co_point = random.randint(1, length)
+    new_chro = Chromosome(length)
+    for i in range(length+1):
+        if i < co_point:
+            new_chro.genes[i] = chro1.genes[i]
+        else:
+            new_chro.genes[i] = chro2.genes[i]
+    return new_chro
+
+def mutation (chro, adj_matrix, length, mutation_possibility):
+    new_chro = Chromosome(length)
+    for i in range(1, length+1):
+        random_float = random.uniform(0, 1)
+        if random_float <= mutation_possibility:
+            neighbors = find_neighber(i, adj_matrix, length)
+            new_chro.genes[i] = neighbors[random.randint(0, len(neighbors)-1)]
+        else:
+            new_chro.genes[i]=chro.genes[i]
+    return new_chro
+
+
+def genetic (adj_matrix, popu, iter_num, length, mutation_possibility):
     chro_list = []
     for i in range(popu):
         chro_list.append(random_chro(adj_matrix, length))
+
+    max_value = 0
+    for i in range(iter_num):
+        max_value, maximum, parents_list = choose_parent(chro_list, popu, length)
+        new_chro_list = [chro_list[maximum]]
+        for j in range(0, (2 * popu) - 2, 2):
+            new_chro_list.append(crossover(chro_list[parents_list[j]], chro_list[parents_list[j + 1]], length))
+        for k in range(1, popu):
+            new_chro_list[k] = mutation(new_chro_list[k], adj_matrix, length, mutation_possibility)
+        chro_list = new_chro_list
+
+        if i % 200 == 0:
+            print("i =", i, " / max_value = ", chro_list[maximum].Q(adj_matrix, length, "Yes"))
+    
+    return max_value
     
     
 
@@ -105,3 +171,5 @@ while i < len(file_content):
     adj_matrix[y][x] = 1
     i += 2
 file.close()
+
+print(genetic(adj_matrix, 50, 10000, nodes_num, 0.04))
