@@ -63,6 +63,29 @@ class Chromosome:
             return 1
         return result
 
+    def crossover (self, other, length):
+        new_chro = Chromosome(length)
+        for i in range(length+1):
+            random_int = random.randint(0, 1)
+            if random_int == 0:
+                new_chro.genes[i] = self.genes[i]
+            else:
+                new_chro.genes[i] = other.genes[i]
+        return new_chro
+    
+    def mutation (self, adj_matrix, length, mutation_possibility):
+        new_chro = Chromosome(length)
+        for i in range(1, length+1):
+            random_float = random.uniform(0, 1)
+            if random_float <= mutation_possibility:
+                neighbors = find_neighber(i, adj_matrix, length)
+                new_chro.genes[i] = neighbors[random.randint(0, len(neighbors)-1)]
+            else:
+                new_chro.genes[i]=self.genes[i]
+        return new_chro
+
+
+
 
 def find_neighber (node_num, adj_matrix, length):
     neighbors = []
@@ -103,26 +126,6 @@ def choose_parent (chro_list, popu, length):
     
     return Q_list[maximum], maximum, choosed_parents
 
-def crossover (chro1, chro2, length):
-    co_point = random.randint(1, length)
-    new_chro = Chromosome(length)
-    for i in range(length+1):
-        if i < co_point:
-            new_chro.genes[i] = chro1.genes[i]
-        else:
-            new_chro.genes[i] = chro2.genes[i]
-    return new_chro
-
-def mutation (chro, adj_matrix, length, mutation_possibility):
-    new_chro = Chromosome(length)
-    for i in range(1, length+1):
-        random_float = random.uniform(0, 1)
-        if random_float <= mutation_possibility:
-            neighbors = find_neighber(i, adj_matrix, length)
-            new_chro.genes[i] = neighbors[random.randint(0, len(neighbors)-1)]
-        else:
-            new_chro.genes[i]=chro.genes[i]
-    return new_chro
 
 
 def genetic (adj_matrix, popu, iter_num, length, mutation_possibility):
@@ -135,9 +138,9 @@ def genetic (adj_matrix, popu, iter_num, length, mutation_possibility):
         max_value, maximum, parents_list = choose_parent(chro_list, popu, length)
         new_chro_list = [chro_list[maximum]]
         for j in range(0, (2 * popu) - 2, 2):
-            new_chro_list.append(crossover(chro_list[parents_list[j]], chro_list[parents_list[j + 1]], length))
+            new_chro_list.append(chro_list[parents_list[j]].crossover(chro_list[parents_list[j + 1]], length))
         for k in range(1, popu):
-            new_chro_list[k] = mutation(new_chro_list[k], adj_matrix, length, mutation_possibility)
+            new_chro_list[k] = new_chro_list[k].mutation(adj_matrix, length, mutation_possibility)
         chro_list = new_chro_list
 
         if i % 200 == 0:
