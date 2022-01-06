@@ -15,6 +15,10 @@ class Partition:
         for i in range(len(self.parent)):
             if self.parent[i] == b:
                 self.parent[i] = a
+    
+    def build_partition (self, chro, length):
+        for i in range(length+1):
+            self.union(i, chro.genes[i])
 
     def report(self):
         result = [[] for i in range(len(self.parent))]
@@ -27,14 +31,14 @@ class Partition:
                 result.pop(j)
             else:
                 j += 1
-        return len(result)
+        return result
     
 
 class Chromosome:
     def __init__ (self, length):
         self.genes = [0 for i in range(length+1)]
     
-    def Q (self, adj_matrix, length, YesorNo):
+    def Q (self, adj_matrix, length):
         m = 0
         k = [0 for i in range(length+1)]
         for i in range(length+1):
@@ -44,8 +48,7 @@ class Chromosome:
                     m += 0.5
 
         p = Partition(length)
-        for i in range(length+1):
-            p.union(i, self.genes[i])
+        p.build_partition(self, length)
 
         result = 0
         for i in range(1, length+1):
@@ -53,9 +56,6 @@ class Chromosome:
                 if p.find(i) == p.find(j):
                     result += adj_matrix[i][j] - (k[i] * k[j] / (2 * m))
         result /= (2 * m)
-
-        if (YesorNo == 'Yes'):
-            print(p.report())
 
         if result < 0:
             return 0
@@ -104,16 +104,16 @@ def random_chro (adj_matrix, length):
 def choose_parent (chro_list, popu, length):
     Q_list = []
     maximum = 0
-    summation = 0
+    sum2 = 0
     for i in range(popu):
-        Q_list.append(chro_list[i].Q(adj_matrix, length, 'No'))
-        summation += Q_list[i]
+        Q_list.append(chro_list[i].Q(adj_matrix, length))
+        sum2 += (Q_list[i] * Q_list[i])
         if Q_list[i] > Q_list[maximum]:
             maximum = i
     
     possibility = []
     for i in range(popu):
-        possibility.append(Q_list[i] / summation)
+        possibility.append((Q_list[i] * Q_list[i]) / sum2)
 
     choosed_parents = []
     for i in range((2 * popu) - 2):
@@ -133,7 +133,7 @@ def genetic (adj_matrix, popu, iter_num, length, mutation_possibility):
     for i in range(popu):
         chro_list.append(random_chro(adj_matrix, length))
 
-    max_value = 0
+    max_value, maximum = 0, 0
     for i in range(iter_num):
         max_value, maximum, parents_list = choose_parent(chro_list, popu, length)
         new_chro_list = [chro_list[maximum]]
@@ -144,9 +144,13 @@ def genetic (adj_matrix, popu, iter_num, length, mutation_possibility):
         chro_list = new_chro_list
 
         if i % 200 == 0:
-            print("i =", i, " / max_value = ", chro_list[maximum].Q(adj_matrix, length, "Yes"))
+            print("number of iterations =", i, " / max value = ", chro_list[maximum].Q(adj_matrix, length))
     
-    return max_value
+    p = Partition(length)
+    p.build_partition(chro_list[maximum], length)
+    best_patitioning = p.report()
+
+    return max_value, best_patitioning
     
     
 
@@ -175,4 +179,5 @@ while i < len(file_content):
     i += 2
 file.close()
 
-print(genetic(adj_matrix, 50, 10000, nodes_num, 0.04))
+max_value, best_patitioning = genetic(adj_matrix, 50, 10000, nodes_num, 0.04)
+print("Best partitioning = ", best_patitioning, " / Q = ", max_value)
