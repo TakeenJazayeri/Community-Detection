@@ -125,7 +125,7 @@ def two_sort (arr1, arr2):
   
         i = j = k = 0
         while i < len(L1) and j < len(R1):
-            if L1[i] < R1[j]:
+            if L1[i] > R1[j]:
                 arr1[k] = L1[i]
                 arr2[k] = L2[i]
                 i += 1
@@ -162,9 +162,12 @@ def cuckoo_algorithm (adj_matrix, ngh_matrix, popu, iter_num, var_low, var_high,
             egg_list.append(egg)
     
     egg_list_Q = []
-    for i in range(popu):
+    for i in range(len(egg_list)):
         egg_list_Q.append(egg_list[i].Q(adj_matrix, length))
+
     two_sort(egg_list_Q, egg_list)
+    egg_list = egg_list[:popu]
+    egg_list_Q = egg_list_Q[:popu]
 
     
 
@@ -197,14 +200,3 @@ file.close()
 ngh_matrix = []
 for i in range(nodes_num+1):
     ngh_matrix.append(find_neighbors(i, adj_matrix, nodes_num))
-
-#print(adj_matrix)
-#print(ngh_matrix)
-#for i in range(10):
-#    print(random_cuc(adj_matrix, ngh_matrix, nodes_num).habitat)
-
-arr1 = [3, 5, -1, 4, 2, 11, 10]
-arr2 = [1, 2, 3, 4, 5, 6, 7]
-two_sort(arr1, arr2)
-print(arr1)
-print(arr2)
