@@ -90,7 +90,7 @@ class Chromosome:
 def find_neighber (node_num, adj_matrix, length):
     neighbors = []
     for i in range(length+1):
-        if adj_matrix[nodes_num][i] == 1:
+        if adj_matrix[node_num][i] == 1:
             neighbors.append(i)
     return neighbors
 
@@ -143,7 +143,7 @@ def genetic (adj_matrix, popu, iter_num, length, mutation_possibility):
             new_chro_list[k] = new_chro_list[k].mutation(adj_matrix, length, mutation_possibility)
         chro_list = new_chro_list
 
-        if i % 200 == 0:
+        if i % 10 == 0:
             print("number of iterations =", i, " / max value = ", chro_list[maximum].Q(adj_matrix, length))
     
     p = Partition(length)
@@ -179,5 +179,5 @@ while i < len(file_content):
     i += 2
 file.close()
 
-max_value, best_patitioning = genetic(adj_matrix, 50, 10000, nodes_num, 0.04)
+max_value, best_patitioning = genetic(adj_matrix, 50, 100, nodes_num, 0.05)
 print("Best partitioning = ", best_patitioning, " / Q = ", max_value)
