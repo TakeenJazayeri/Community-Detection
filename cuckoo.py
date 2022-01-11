@@ -63,20 +63,38 @@ class Habitat:
         elif result > 1:
             return 1
         return result
+    
+    def difference (self, other, length):
+        dif = []
+        for i in range(length+1):
+            dif.append(self.coordinates[i] - other.coordinates[i])
+    
 
 
-
-
-def find_neighbers (node_num, adj_matrix, length):
+def find_neighbors (node_num, adj_matrix, length):
     neighbors = []
     for i in range(length+1):
         if adj_matrix[node_num][i] == 1:
             neighbors.append(i)
     return neighbors
 
+def random_hab (adj_matrix, ngh_matrix, length):
+    new_hab = Habitat(length)
+    for i in range(1, length+1):
+        neighbors = find_neighbors(i, adj_matrix, length)
+        new_hab.coordinates[i] = random.randint(0, len(ngh_matrix[i])-1)
+    return new_hab
+
+
 
     
+def cuckoo_algorithm (adj_matrix, popu, iter_num, length):
+    hab_list = []
+    for i in range(popu):
+        hab_list.append(random_hab(adj_matrix, length))
+
     
+
 
 file_address = input('add file address:\n')
 try:
@@ -105,7 +123,9 @@ file.close()
 
 ngh_matrix = []
 for i in range(nodes_num+1):
-    ngh_matrix.append(find_neighbers(i, adj_matrix, nodes_num))
+    ngh_matrix.append(find_neighbors(i, adj_matrix, nodes_num))
 
 print(adj_matrix)
 print(ngh_matrix)
+for i in range(10):
+    print(random_hab(adj_matrix, ngh_matrix, nodes_num).coordinates)
