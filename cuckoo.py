@@ -41,30 +41,6 @@ class Cuckoo:
     def __init__ (self, length):
         self.habitat = [0 for i in range(length+1)]
     
-    def difference (self, other, length):
-        dif_sum = 0
-        for i in range(length+1):
-            dif = self.habitat[i] - other.habitat[i]
-            if dif >= 0:
-                dif_sum += dif
-            else:
-                dif_sum -= dif
-        return dif_sum
-
-    def spawn (self, adj_matrix, ngh_matrix, my_egg_num, my_ELR, length):
-        my_egg_list = []
-        while len(my_egg_list) < my_egg_num:
-            new_egg = Cuckoo(length)
-            for i in range(1, length+1):
-                new_egg.habitat[i] = self.habitat[i]
-                if random.randint(0, 3) == 0:
-                    new_egg.habitat[i] = (new_egg.habitat[i] + 1) % len(ngh_matrix[i])
-
-            if self.difference(new_egg, length) < my_ELR:
-                my_egg_list.append(new_egg)
-
-        return my_egg_list
-    
     def Q (self, adj_matrix, length):
         m = 0
         k = [0 for i in range(length+1)]
@@ -89,6 +65,31 @@ class Cuckoo:
         elif result > 1:
             return 1
         return result
+    
+    def difference (self, other, length):
+        dif_sum = 0
+        for i in range(length+1):
+            dif = self.habitat[i] - other.habitat[i]
+            if dif >= 0:
+                dif_sum += dif
+            else:
+                dif_sum -= dif
+        return dif_sum
+
+    def spawn (self, adj_matrix, ngh_matrix, my_egg_num, my_ELR, length):
+        my_egg_list = []
+        while len(my_egg_list) < my_egg_num:
+            new_egg = Cuckoo(length)
+            for i in range(1, length+1):
+                new_egg.habitat[i] = self.habitat[i]
+                if random.randint(0, 3) == 0:
+                    change = random.randint(0, 3)
+                    new_egg.habitat[i] = (new_egg.habitat[i] + change) % len(ngh_matrix[i])
+
+            if self.difference(new_egg, length) < my_ELR:
+                my_egg_list.append(new_egg)
+
+        return my_egg_list
     
 
 
@@ -150,12 +151,12 @@ def migration_dest (cuc_list, cuc_list_Q, ngh_matrix, popu, length):
     
     df = DataFrame(data, columns=Xs[1:])
     kmeans = KMeans(n_clusters=3).fit(df)
-    colors = kmeans.labels_
+    labels = kmeans.labels_
     centers = kmeans.cluster_centers_
 
     Q_sum = [0, 0, 0]
     for i in range(popu):
-        Q_sum[colors[i]] += cuc_list_Q[i]
+        Q_sum[labels[i]] += cuc_list_Q[i]
     
     if Q_sum[0] > Q_sum[1] and Q_sum[0] > Q_sum[2]:
         dest_arr = centers[0]
@@ -178,7 +179,7 @@ def migration (cuc_list, dest, length):
 
     for cuc in cuc_list:
         diff = cuc.difference(best_cuc, length)
-        prob = round(diff / length, 0)
+        prob = max(round(diff / length, 0)*2, 1)
         for i in range(length):
             if random.random() < prob:
                 cuc.habitat[i] = best_cuc.habitat[i]
@@ -222,12 +223,11 @@ def two_sort (arr1, arr2):
     
 def cuckoo_algorithm (adj_matrix, ngh_matrix, popu, iter_num, var_low, var_high, alpha, length):
     cuc_list = []
-    cuc_list_Q = []
     for i in range(popu):
         cuc_list.append(random_cuc(adj_matrix, ngh_matrix, length))
     
-    max_Q = 0
     best_cuc = Cuckoo(length)
+    max_Q = 0
 
     for count in range(iter_num):
         egg_num, ELR = set_egg_and_ELR (var_low, var_high, alpha, popu)
@@ -239,6 +239,7 @@ def cuckoo_algorithm (adj_matrix, ngh_matrix, popu, iter_num, var_low, var_high,
                 if random.randint(0, 2) != 0:
                     egg_list.append(egg)
         
+        cuc_list_Q = []
         cuc_list, cuc_list_Q = choosing_best_eggs(egg_list, popu, length)
 
         if cuc_list_Q[0] > max_Q:
@@ -250,8 +251,8 @@ def cuckoo_algorithm (adj_matrix, ngh_matrix, popu, iter_num, var_low, var_high,
             dest = migration_dest(cuc_list, cuc_list_Q, ngh_matrix, popu, length)
             migration(cuc_list, dest, length)
         
-        if i % 10 == 0:
-            print("number of iterations =", count, " / max value = ", cuc_list_Q[0])
+        if count % 10 == 0:
+            print("number of iterations =", count, " / max value = ", max_Q)
 
     p = Partition(length)
     p.build_partition(best_cuc, length)
