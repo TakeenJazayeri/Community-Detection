@@ -121,6 +121,18 @@ def set_egg_and_ELR (var_low, var_high, alpha, popu):
     return egg_num, ELR
 
 
+def choosing_best_eggs (egg_list, popu, length):
+    egg_list_Q = []
+    for i in range(len(egg_list)):
+        egg_list_Q.append(egg_list[i].Q(adj_matrix, length))
+
+    two_sort(egg_list_Q, egg_list)
+    egg_list = egg_list[:popu]
+    egg_list_Q = egg_list_Q[:popu]
+
+    return egg_list, egg_list_Q
+
+
 def migration_dest (cuc_list, cuc_list_Q, ngh_matrix, popu, length):
     Xs = [""]
     coordinates = [[]]
@@ -158,6 +170,18 @@ def migration_dest (cuc_list, cuc_list_Q, ngh_matrix, popu, length):
         dest[i] = int(round(dest[i], 0) % len(ngh_matrix[i]))
 
     return dest
+
+
+def migration (cuc_list, dest, length):
+    best_cuc = Cuckoo(length)
+    best_cuc.habitat = dest
+
+    for cuc in cuc_list:
+        diff = cuc.difference(best_cuc, length)
+        prob = round(diff / length, 0)
+        for i in range(length):
+            if random.random() < prob:
+                cuc.habitat[i] = best_cuc.habitat[i]
 
 
 def two_sort (arr1, arr2):
@@ -199,17 +223,14 @@ def two_sort (arr1, arr2):
 def cuckoo_algorithm (adj_matrix, ngh_matrix, popu, iter_num, var_low, var_high, alpha, length):
     cuc_list = []
     cuc_list_Q = []
-    print("1")
     for i in range(popu):
         cuc_list.append(random_cuc(adj_matrix, ngh_matrix, length))
-        print(cuc_list[i].habitat)
     
+    max_Q = 0
+    best_cuc = Cuckoo(length)
+
     for count in range(iter_num):
         egg_num, ELR = set_egg_and_ELR (var_low, var_high, alpha, popu)
-        print("2")
-        print(egg_num)
-        print("3")
-        print(ELR)
 
         egg_list = []
         for i in range(popu):
@@ -217,26 +238,26 @@ def cuckoo_algorithm (adj_matrix, ngh_matrix, popu, iter_num, var_low, var_high,
             for egg in my_egg_list:
                 if random.randint(0, 2) != 0:
                     egg_list.append(egg)
-            print("#" + str(i))
         
-        egg_list_Q = []
-        for i in range(len(egg_list)):
-            egg_list_Q.append(egg_list[i].Q(adj_matrix, length))
+        cuc_list, cuc_list_Q = choosing_best_eggs(egg_list, popu, length)
 
-        two_sort(egg_list_Q, egg_list)
-        egg_list = egg_list[:popu]
-        egg_list_Q = egg_list_Q[:popu]
-        print("4")
-        for i in range(popu):
-            print(egg_list[i].habitat)
-            print(egg_list_Q[i])
+        if cuc_list_Q[0] > max_Q:
+            max_Q = cuc_list_Q[0]
+            for i in range(length+1):
+                best_cuc.habitat[i] = cuc_list[0].habitat[i]
 
-        cuc_list = egg_list
-        cuc_list_Q = egg_list_Q
+        if count < iter_num - 1:
+            dest = migration_dest(cuc_list, cuc_list_Q, ngh_matrix, popu, length)
+            migration(cuc_list, dest, length)
+        
+        if i % 10 == 0:
+            print("number of iterations =", count, " / max value = ", cuc_list_Q[0])
 
-        dest = migration_dest(cuc_list, cuc_list_Q, ngh_matrix, popu, length)
-        print("5")
-        print(dest)
+    p = Partition(length)
+    p.build_partition(best_cuc, length)
+    best_patitioning = p.report()
+
+    return max_Q, best_patitioning
 
     
 
@@ -270,4 +291,5 @@ ngh_matrix = []
 for i in range(nodes_num+1):
     ngh_matrix.append(find_neighbors(i, adj_matrix, nodes_num))
 
-cuckoo_algorithm (adj_matrix, ngh_matrix, 20, 1, 5, 10, 10, nodes_num)
+max_value, best_patitioning = cuckoo_algorithm (adj_matrix, ngh_matrix, 10, 100, 5, 8, 10, nodes_num)
+print("Best partitioning = ", best_patitioning, " / Q = ", max_value)
