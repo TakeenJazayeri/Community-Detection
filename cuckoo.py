@@ -1,4 +1,6 @@
 import random
+from pandas import DataFrame
+from sklearn.cluster import KMeans
 
 class Partition:
     def __init__ (self, num):
@@ -52,9 +54,14 @@ class Cuckoo:
     def spawn (self, adj_matrix, ngh_matrix, my_egg_num, my_ELR, length):
         my_egg_list = []
         while len(my_egg_list) < my_egg_num:
-            new_cuc = random_cuc(adj_matrix, ngh_matrix, length)
-            if self.difference(new_cuc, length) < my_ELR:
-                my_egg_list.append(new_cuc)
+            new_egg = Cuckoo(length)
+            for i in range(1, length+1):
+                new_egg.habitat[i] = self.habitat[i]
+                if random.randint(0, 3) == 0:
+                    new_egg.habitat[i] = (new_egg.habitat[i] + 1) % len(ngh_matrix[i])
+
+            if self.difference(new_egg, length) < my_ELR:
+                my_egg_list.append(new_egg)
 
         return my_egg_list
     
@@ -106,12 +113,52 @@ def set_egg_and_ELR (var_low, var_high, alpha, popu):
 
     for i in range(popu):
         egg_num.append(random.randint(var_low, var_high))
-        total_num += egg_num
+        total_num += egg_num[i]
     
     for i in range(popu):
-        ELR[i] = alpha * (egg_num[i] / total_num) * (var_high - var_low)
+        ELR.append(alpha * (egg_num[i] / total_num) * (var_high - var_low))
     
     return egg_num, ELR
+
+
+def migration_dest (cuc_list, cuc_list_Q, ngh_matrix, popu, length):
+    Xs = [""]
+    coordinates = [[]]
+    for i in range(1, length+1):
+        Xs.append("x" + str(i))
+        coordinates.append([])
+    
+    for cuckoo in cuc_list:
+        for i in range(1, length+1):
+            coordinates[i].append(cuckoo.habitat[i])
+    
+    data = {}
+    for i in range(1, length+1):
+        data.update({Xs[i]: coordinates[i]})
+    
+    df = DataFrame(data, columns=Xs[1:])
+    kmeans = KMeans(n_clusters=3).fit(df)
+    colors = kmeans.labels_
+    centers = kmeans.cluster_centers_
+
+    Q_sum = [0, 0, 0]
+    for i in range(popu):
+        Q_sum[colors[i]] += cuc_list_Q[i]
+    
+    if Q_sum[0] > Q_sum[1] and Q_sum[0] > Q_sum[2]:
+        dest_arr = centers[0]
+    elif Q_sum[1] > Q_sum[2]:
+        dest_arr = centers[1]
+    else:
+        dest_arr = centers[2]
+
+    dest = [0]
+    for i in range(1, length+1):
+        dest.append(dest_arr[i-1])
+        dest[i] = int(round(dest[i], 0) % len(ngh_matrix[i]))
+
+    return dest
+
 
 def two_sort (arr1, arr2):
     if len(arr1) > 1:
@@ -151,23 +198,45 @@ def two_sort (arr1, arr2):
     
 def cuckoo_algorithm (adj_matrix, ngh_matrix, popu, iter_num, var_low, var_high, alpha, length):
     cuc_list = []
+    cuc_list_Q = []
+    print("1")
     for i in range(popu):
-        cuc_list.append(random_cuc(adj_matrix, length))
+        cuc_list.append(random_cuc(adj_matrix, ngh_matrix, length))
+        print(cuc_list[i].habitat)
     
-    egg_num, ELR = set_egg_and_ELR (var_low, var_high, alpha, popu)
+    for count in range(iter_num):
+        egg_num, ELR = set_egg_and_ELR (var_low, var_high, alpha, popu)
+        print("2")
+        print(egg_num)
+        print("3")
+        print(ELR)
 
-    egg_list = []
-    for i in range(popu):
-        for egg in cuc_list[i].spawn(adj_matrix, ngh_matrix, egg_num[i], ELR[i], length):
-            egg_list.append(egg)
-    
-    egg_list_Q = []
-    for i in range(len(egg_list)):
-        egg_list_Q.append(egg_list[i].Q(adj_matrix, length))
+        egg_list = []
+        for i in range(popu):
+            my_egg_list = cuc_list[i].spawn(adj_matrix, ngh_matrix, egg_num[i], ELR[i], length)
+            for egg in my_egg_list:
+                if random.randint(0, 2) != 0:
+                    egg_list.append(egg)
+            print("#" + str(i))
+        
+        egg_list_Q = []
+        for i in range(len(egg_list)):
+            egg_list_Q.append(egg_list[i].Q(adj_matrix, length))
 
-    two_sort(egg_list_Q, egg_list)
-    egg_list = egg_list[:popu]
-    egg_list_Q = egg_list_Q[:popu]
+        two_sort(egg_list_Q, egg_list)
+        egg_list = egg_list[:popu]
+        egg_list_Q = egg_list_Q[:popu]
+        print("4")
+        for i in range(popu):
+            print(egg_list[i].habitat)
+            print(egg_list_Q[i])
+
+        cuc_list = egg_list
+        cuc_list_Q = egg_list_Q
+
+        dest = migration_dest(cuc_list, cuc_list_Q, ngh_matrix, popu, length)
+        print("5")
+        print(dest)
 
     
 
@@ -200,3 +269,5 @@ file.close()
 ngh_matrix = []
 for i in range(nodes_num+1):
     ngh_matrix.append(find_neighbors(i, adj_matrix, nodes_num))
+
+cuckoo_algorithm (adj_matrix, ngh_matrix, 20, 1, 5, 10, 10, nodes_num)
