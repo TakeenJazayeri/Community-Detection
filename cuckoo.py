@@ -83,7 +83,7 @@ class Cuckoo:
             for i in range(1, length+1):
                 new_egg.habitat[i] = self.habitat[i]
                 if random.randint(0, 3) == 0:
-                    change = random.randint(0, 3)
+                    change = random.randint(0, 4)
                     new_egg.habitat[i] = (new_egg.habitat[i] + change) % len(ngh_matrix[i])
 
             if self.difference(new_egg, length) < my_ELR:
@@ -272,12 +272,7 @@ except IOError:
 first_line = file.readline()
 nodes_num = int(first_line[:-1])
 
-adj_matrix = []
-for i in range(nodes_num+1):
-    new_row = []
-    for j in range(nodes_num+1):
-        new_row.append(0)
-    adj_matrix.append(new_row)
+adj_matrix = [[0 for j in range(nodes_num+1)] for i in range(nodes_num+1)]
 
 file_content = file.read().replace("\n", " ").split()
 i = 0
@@ -292,5 +287,5 @@ ngh_matrix = []
 for i in range(nodes_num+1):
     ngh_matrix.append(find_neighbors(i, adj_matrix, nodes_num))
 
-max_value, best_patitioning = cuckoo_algorithm (adj_matrix, ngh_matrix, 10, 100, 5, 8, 10, nodes_num)
+max_value, best_patitioning = cuckoo_algorithm (adj_matrix, ngh_matrix, 10, 100, 5, 8, 20, nodes_num)
 print("Best partitioning = ", best_patitioning, " / Q = ", max_value)
